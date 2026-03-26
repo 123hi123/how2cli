@@ -3,6 +3,18 @@ use std::io::Write;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+/// Count how many terminal lines a string occupies (accounting for wrapping + 2-char indent).
+fn count_display_lines(text: &str, term_width: usize) -> u16 {
+    let usable = term_width.saturating_sub(2).max(1); // 2-char indent
+    let mut lines: u16 = 0;
+    for line in text.split('\n') {
+        let len = line.len();
+        lines += ((len / usable) + 1) as u16;
+    }
+    // Subtract 1 because the cursor sits on the last line (no extra newline)
+    lines.saturating_sub(1)
+}
+
 /// Token usage info from API response
 #[derive(Debug, Default)]
 pub struct TokenUsage {
@@ -90,6 +102,7 @@ pub async fn chat_completion_stream(
     let mut token_usage = TokenUsage::default();
     let mut buffer = String::new();
     let mut resp = resp;
+    let mut printed_lines: u16 = 0;
 
     while let Some(chunk) = resp.chunk().await? {
         buffer.push_str(&String::from_utf8_lossy(&chunk));
@@ -115,8 +128,25 @@ pub async fn chat_completion_stream(
                     if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
                         full_response.push_str(content);
                         if print {
-                            print!("{}", content);
+                            // Move cursor back to start of our output and clear
+                            if printed_lines > 0 {
+                                use crossterm::{cursor, terminal, execute};
+                                let _ = execute!(
+                                    std::io::stdout(),
+                                    cursor::MoveUp(printed_lines),
+                                    cursor::MoveToColumn(0),
+                                    terminal::Clear(terminal::ClearType::FromCursorDown)
+                                );
+                            }
+                            // Reprint full accumulated response with indent
+                            let display = full_response.replace('\n', "\n  ");
+                            print!("  {}", display);
                             let _ = std::io::stdout().flush();
+                            // Count lines for next rewrite
+                            let term_width = crossterm::terminal::size()
+                                .map(|(w, _)| w as usize)
+                                .unwrap_or(80);
+                            printed_lines = count_display_lines(&full_response, term_width);
                         }
                     }
                     if let Some(usage) = data.get("usage") {

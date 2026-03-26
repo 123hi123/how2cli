@@ -28,6 +28,7 @@ tokio = { version = "1", features = ["full"] }
 dirs = "6"
 toml = "0.8"
 termimad = "0.30"
+crossterm = "0.29"
 dialoguer = { version = "0.11", features = ["fuzzy-select"] }
 base64 = "0.22"
 

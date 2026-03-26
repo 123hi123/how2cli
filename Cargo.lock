@@ -625,6 +625,7 @@ dependencies = [
  "base64",
  "clap",
  "colored",
+ "crossterm",
  "dialoguer",
  "dirs",
  "dotenvy",

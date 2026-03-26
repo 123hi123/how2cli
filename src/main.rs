@@ -242,7 +242,7 @@ async fn main() {
         let model = cli.model.as_deref().unwrap_or(&cfg.fast_model);
 
         let stream_print = cfg.stream_output;
-        if stream_print { print!("\n  "); }
+        if stream_print { println!(); } // blank line before streaming output
 
         let result = api::chat_completion_stream(
             &client, &cfg.base_url, &cfg.api_key, model, &messages, stream_print,
@@ -254,7 +254,7 @@ async fn main() {
                 // Retry without images
                 if stream_print { eprintln!(); }
                 let messages_no_img = build_messages(&system_prompt, &history, &user_query, &[]);
-                if stream_print { print!("\n  "); }
+                if stream_print { println!(); }
                 match api::chat_completion_stream(
                     &client, &cfg.base_url, &cfg.api_key, model, &messages_no_img, stream_print,
                 ).await {
