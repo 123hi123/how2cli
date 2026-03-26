@@ -143,34 +143,39 @@ async fn main() {
     let history = session::load_history(history_limit);
 
     if cli.talk {
-        // Talk mode: free conversation, single request
+        // Talk mode: free conversation, streaming
         let system_prompt = prompt::build_talk_prompt(&cfg.custom_prompt);
         let messages = build_messages(&system_prompt, &history, &user_query);
         let model = cli.model.as_deref().unwrap_or(&cfg.fast_model);
 
-        match api::chat_completion(&client, &cfg.base_url, &cfg.api_key, model, &messages).await {
+        print!("\n  ");
+        match api::chat_completion_stream(
+            &client, &cfg.base_url, &cfg.api_key, model, &messages, true,
+        ).await {
             Ok(response) => {
-                format::format_talk(&response);
+                println!();
                 session::append(&user_query, &response);
             }
             Err(e) => {
-                eprintln!("API 請求失敗: {}", e);
+                eprintln!("\nAPI 請求失敗: {}", e);
                 std::process::exit(1);
             }
         }
     } else if slow {
-        // Think mode: single request with slow model
+        // Think mode: streaming with slow model + timeout
         let shell_ctx = shell::ShellContext::detect();
         let model = cli.model.as_deref().unwrap_or(&cfg.slow_model);
         let system_prompt = prompt::build_search_prompt(&shell_ctx, &cfg.custom_prompt);
         let messages = build_messages(&system_prompt, &history, &user_query);
         let timeout_dur = Duration::from_secs(cfg.slow_timeout);
 
+        // Stream but buffer (don't print) — parse COMMAND/EXPLANATION after completion
         let result = tokio::time::timeout(
             timeout_dur,
-            api::chat_completion(&client, &cfg.base_url, &cfg.api_key, model, &messages),
-        )
-        .await;
+            api::chat_completion_stream(
+                &client, &cfg.base_url, &cfg.api_key, model, &messages, false,
+            ),
+        ).await;
 
         match result {
             Ok(Ok(response)) => {
@@ -192,61 +197,42 @@ async fn main() {
             }
         }
     } else {
-        // Fast mode: dual-request parallel
+        // Fast mode: try search model streaming, fallback to direct model
         let shell_ctx = shell::ShellContext::detect();
         let model = cli.model.as_deref().unwrap_or(&cfg.fast_model);
-        let search_model_name = if cli.model.is_some() {
+        let search_model = if cli.model.is_some() {
             format!("{}-search", model)
         } else {
             cfg.search_model()
         };
 
-        let direct_prompt = prompt::build_direct_prompt(&shell_ctx, &cfg.custom_prompt);
-        let search_prompt = prompt::build_search_prompt(&shell_ctx, &cfg.custom_prompt);
+        let system_prompt = prompt::build_direct_prompt(&shell_ctx, &cfg.custom_prompt);
+        let messages = build_messages(&system_prompt, &history, &user_query);
         let timeout_dur = Duration::from_secs(cfg.fast_timeout);
 
-        let messages1 = build_messages(&direct_prompt, &history, &user_query);
-        let messages2 = build_messages(&search_prompt, &history, &user_query);
+        // Try search model first (streaming, buffered, with timeout)
+        let search_messages = {
+            let search_prompt = prompt::build_search_prompt(&shell_ctx, &cfg.custom_prompt);
+            build_messages(&search_prompt, &history, &user_query)
+        };
 
-        let client1 = client.clone();
-        let base_url1 = cfg.base_url.clone();
-        let api_key1 = cfg.api_key.clone();
-        let model1 = model.to_string();
+        let result = tokio::time::timeout(
+            timeout_dur,
+            api::chat_completion_stream(
+                &client, &cfg.base_url, &cfg.api_key, &search_model, &search_messages, false,
+            ),
+        ).await;
 
-        let client2 = client.clone();
-        let base_url2 = cfg.base_url.clone();
-        let api_key2 = cfg.api_key.clone();
-        let model2 = search_model_name;
-
-        // Task 1: direct answer (no timeout limit)
-        let task1 = tokio::spawn(async move {
-            api::chat_completion(&client1, &base_url1, &api_key1, &model1, &messages1).await
-        });
-
-        // Task 2: search-enhanced answer (with timeout)
-        let task2 = tokio::spawn(async move {
-            tokio::time::timeout(
-                timeout_dur,
-                api::chat_completion(&client2, &base_url2, &api_key2, &model2, &messages2),
-            )
-            .await
-        });
-
-        // Wait for both tasks
-        let (r1, r2) = tokio::join!(task1, task2);
-
-        // Prefer Task 2 (search) if completed within timeout
-        let response = match r2 {
-            Ok(Ok(Ok(resp))) => resp,
+        let response = match result {
+            Ok(Ok(resp)) => resp,
             _ => {
-                match r1 {
-                    Ok(Ok(resp)) => resp,
-                    Ok(Err(e)) => {
-                        eprintln!("API 請求失敗: {}", e);
-                        std::process::exit(1);
-                    }
+                // Fallback to direct model (streaming, buffered)
+                match api::chat_completion_stream(
+                    &client, &cfg.base_url, &cfg.api_key, model, &messages, false,
+                ).await {
+                    Ok(resp) => resp,
                     Err(e) => {
-                        eprintln!("內部錯誤: {}", e);
+                        eprintln!("API 請求失敗: {}", e);
                         std::process::exit(1);
                     }
                 }
