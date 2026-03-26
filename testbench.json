@@ -1,0 +1,602 @@
+[
+  {
+    "id": 1,
+    "category": "file",
+    "query": "list all files in current directory",
+    "expected_commands": ["ls", "ls -a", "ls -la", "ls -al", "ls -l", "ls -lah", "ls -lha", "dir", "ls -A"]
+  },
+  {
+    "id": 2,
+    "category": "file",
+    "query": "find all .txt files in current directory recursively",
+    "expected_commands": ["find . -name '*.txt'", "find . -name \"*.txt\"", "find . -type f -name '*.txt'", "find . -type f -name \"*.txt\"", "fd -e txt", "fd --extension txt", "find . -iname '*.txt'"]
+  },
+  {
+    "id": 3,
+    "category": "file",
+    "query": "copy a file to another location",
+    "expected_commands": ["cp source dest", "cp source destination", "cp -r source dest", "cp -i source dest", "cp -v source dest", "cp src dst"]
+  },
+  {
+    "id": 4,
+    "category": "file",
+    "query": "move or rename a file",
+    "expected_commands": ["mv oldname newname", "mv source dest", "mv source destination", "mv old new", "mv -i source dest", "mv -v source dest"]
+  },
+  {
+    "id": 5,
+    "category": "file",
+    "query": "delete a file",
+    "expected_commands": ["rm file", "rm -f file", "rm -i file", "rm filename", "rm -v file"]
+  },
+  {
+    "id": 6,
+    "category": "file",
+    "query": "create a new empty file",
+    "expected_commands": ["touch file", "touch filename", "> file", "touch newfile"]
+  },
+  {
+    "id": 7,
+    "category": "file",
+    "query": "create a new directory",
+    "expected_commands": ["mkdir dirname", "mkdir dir", "mkdir -p dirname", "mkdir -p dir", "mkdir newdir", "mkdir -p path/to/dir"]
+  },
+  {
+    "id": 8,
+    "category": "file",
+    "query": "show file size in human readable format",
+    "expected_commands": ["ls -lh file", "ls -lh", "du -h file", "du -sh file", "stat file", "ls -lah file", "wc -c file"]
+  },
+  {
+    "id": 9,
+    "category": "file",
+    "query": "find files larger than 100MB",
+    "expected_commands": ["find . -size +100M", "find . -type f -size +100M", "find / -size +100M", "find / -type f -size +100M", "find . -size +100M -type f"]
+  },
+  {
+    "id": 10,
+    "category": "file",
+    "query": "show disk usage of current directory",
+    "expected_commands": ["du -sh .", "du -sh", "du -h .", "du -h", "du -sh *", "du -h --max-depth=1", "du -hd1", "du -h -d 1", "du --summarize -h"]
+  },
+  {
+    "id": 11,
+    "category": "file",
+    "query": "show free disk space",
+    "expected_commands": ["df -h", "df", "df -H", "df -hT", "df -Th"]
+  },
+  {
+    "id": 12,
+    "category": "file",
+    "query": "create a symbolic link",
+    "expected_commands": ["ln -s target linkname", "ln -s source link", "ln -s target link", "ln -sf target linkname", "ln -s source dest"]
+  },
+  {
+    "id": 13,
+    "category": "file",
+    "query": "change file permissions to 755",
+    "expected_commands": ["chmod 755 file", "chmod 755 filename", "chmod u=rwx,go=rx file", "chmod +x file"]
+  },
+  {
+    "id": 14,
+    "category": "file",
+    "query": "change file owner",
+    "expected_commands": ["chown user file", "chown user:group file", "chown user filename", "sudo chown user file", "sudo chown user:group file", "chown -R user file"]
+  },
+  {
+    "id": 15,
+    "category": "file",
+    "query": "show file type or info",
+    "expected_commands": ["file filename", "file file", "stat file", "stat filename", "file -b filename"]
+  },
+  {
+    "id": 16,
+    "category": "text",
+    "query": "search for a word in a file",
+    "expected_commands": ["grep word file", "grep 'word' file", "grep \"word\" file", "grep -i word file", "grep -n word file", "grep -in word file", "rg word file", "ag word file"]
+  },
+  {
+    "id": 17,
+    "category": "text",
+    "query": "count number of lines in a file",
+    "expected_commands": ["wc -l file", "wc -l filename", "wc -l < file", "cat file | wc -l", "awk 'END{print NR}' file"]
+  },
+  {
+    "id": 18,
+    "category": "text",
+    "query": "show first 10 lines of a file",
+    "expected_commands": ["head file", "head -n 10 file", "head -10 file", "head filename", "sed '10q' file", "head -n10 file"]
+  },
+  {
+    "id": 19,
+    "category": "text",
+    "query": "show last 10 lines of a file",
+    "expected_commands": ["tail file", "tail -n 10 file", "tail -10 file", "tail filename", "tail -n10 file"]
+  },
+  {
+    "id": 20,
+    "category": "text",
+    "query": "sort lines in a file alphabetically",
+    "expected_commands": ["sort file", "sort filename", "sort -f file", "sort -d file", "cat file | sort"]
+  },
+  {
+    "id": 21,
+    "category": "text",
+    "query": "remove duplicate lines from a file",
+    "expected_commands": ["sort file | uniq", "sort -u file", "sort filename | uniq", "awk '!seen[$0]++' file", "uniq file", "sort --unique file"]
+  },
+  {
+    "id": 22,
+    "category": "text",
+    "query": "replace a word in a file",
+    "expected_commands": ["sed -i 's/old/new/g' file", "sed 's/old/new/g' file", "sed -i 's/old/new/' file", "sed -i'' 's/old/new/g' file", "perl -pi -e 's/old/new/g' file", "sed -i 's/word/replacement/g' file"]
+  },
+  {
+    "id": 23,
+    "category": "text",
+    "query": "count occurrences of a word in a file",
+    "expected_commands": ["grep -c word file", "grep -c 'word' file", "grep -o word file | wc -l", "grep -co word file", "grep -o 'word' file | wc -l"]
+  },
+  {
+    "id": 24,
+    "category": "text",
+    "query": "extract columns from a CSV file",
+    "expected_commands": ["cut -d',' -f1 file", "cut -d, -f1 file", "awk -F',' '{print $1}' file", "awk -F, '{print $1}' file", "cut -d ',' -f1 file", "csvtool col 1 file", "cut -d',' -f1,2 file", "csvcut -c 1 file", "csvcut -c 1,2 file", "csvcut -c 1,3,5 data.csv", "miller --csv cut -f 1 file"]
+  },
+  {
+    "id": 25,
+    "category": "text",
+    "query": "merge two files line by line",
+    "expected_commands": ["paste file1 file2", "paste -d' ' file1 file2", "paste -d'\\t' file1 file2", "pr -m -t file1 file2"]
+  },
+  {
+    "id": 26,
+    "category": "text",
+    "query": "show differences between two files",
+    "expected_commands": ["diff file1 file2", "diff -u file1 file2", "diff --color file1 file2", "diff -y file1 file2", "diff --side-by-side file1 file2", "vimdiff file1 file2", "colordiff file1 file2", "diff -c file1 file2"]
+  },
+  {
+    "id": 27,
+    "category": "text",
+    "query": "convert text to uppercase",
+    "expected_commands": ["tr '[:lower:]' '[:upper:]'", "tr a-z A-Z", "awk '{print toupper($0)}'", "sed 's/.*/\\U&/'", "tr '[a-z]' '[A-Z]'", "cat file | tr '[:lower:]' '[:upper:]'", "tr 'a-z' 'A-Z'", "echo text | tr '[:lower:]' '[:upper:]'", "echo text | tr a-z A-Z"]
+  },
+  {
+    "id": 28,
+    "category": "process",
+    "query": "list all running processes",
+    "expected_commands": ["ps aux", "ps -ef", "ps -e", "ps aux --sort=-%mem", "ps -A", "ps -eF", "top", "htop"]
+  },
+  {
+    "id": 29,
+    "category": "process",
+    "query": "kill a process by PID",
+    "expected_commands": ["kill PID", "kill -9 PID", "kill -SIGKILL PID", "kill -TERM PID", "kill -15 PID", "kill -s TERM PID"]
+  },
+  {
+    "id": 30,
+    "category": "process",
+    "query": "kill a process by name",
+    "expected_commands": ["killall name", "pkill name", "killall processname", "pkill -f name", "pkill processname", "killall -9 name", "pkill -9 name"]
+  },
+  {
+    "id": 31,
+    "category": "process",
+    "query": "find a process by name",
+    "expected_commands": ["ps aux | grep name", "pgrep name", "pgrep -a name", "ps -ef | grep name", "pgrep -l name", "pgrep -f name", "pidof name"]
+  },
+  {
+    "id": 32,
+    "category": "process",
+    "query": "show top processes by CPU usage",
+    "expected_commands": ["top", "htop", "ps aux --sort=-%cpu", "ps aux --sort=-%cpu | head", "top -o %CPU", "ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%cpu", "ps aux --sort=-%cpu | head -10"]
+  },
+  {
+    "id": 33,
+    "category": "process",
+    "query": "run a command in the background",
+    "expected_commands": ["command &", "nohup command &", "command &disown", "bg", "setsid command"]
+  },
+  {
+    "id": 34,
+    "category": "process",
+    "query": "show background jobs",
+    "expected_commands": ["jobs", "jobs -l", "jobs -r", "jobs -s"]
+  },
+  {
+    "id": 35,
+    "category": "process",
+    "query": "bring a background job to foreground",
+    "expected_commands": ["fg", "fg %1", "fg %+", "fg %-"]
+  },
+  {
+    "id": 36,
+    "category": "process",
+    "query": "run a command that survives terminal close",
+    "expected_commands": ["nohup command &", "nohup command > /dev/null 2>&1 &", "disown", "screen command", "tmux", "nohup command &>/dev/null &", "setsid command"]
+  },
+  {
+    "id": 37,
+    "category": "process",
+    "query": "check if a port is in use",
+    "expected_commands": ["lsof -i :port", "ss -tulnp | grep port", "netstat -tulnp | grep port", "ss -tlnp", "lsof -i :8080", "netstat -tlnp", "ss -ltnp", "fuser port/tcp", "ss -tulpn | grep port", "sudo ss -tulpn | grep :8080", "sudo lsof -i :port"]
+  },
+  {
+    "id": 38,
+    "category": "network",
+    "query": "check if a website is reachable",
+    "expected_commands": ["ping host", "ping -c 4 host", "ping -c 3 host", "curl -I host", "curl -Is host", "wget --spider host", "ping -c 1 host"]
+  },
+  {
+    "id": 39,
+    "category": "network",
+    "query": "download a file from URL",
+    "expected_commands": ["wget url", "curl -O url", "curl -o file url", "wget -O file url", "curl -L -O url", "wget -q url", "curl -LO url", "aria2c url"]
+  },
+  {
+    "id": 40,
+    "category": "network",
+    "query": "show my IP address",
+    "expected_commands": ["ip addr", "ip a", "ifconfig", "hostname -I", "ip addr show", "curl ifconfig.me", "curl icanhazip.com", "curl ipinfo.io/ip", "ip -4 addr", "curl checkip.amazonaws.com"]
+  },
+  {
+    "id": 41,
+    "category": "network",
+    "query": "show all open ports",
+    "expected_commands": ["ss -tulnp", "netstat -tulnp", "ss -tlnp", "netstat -tlnp", "ss -ltnp", "lsof -i -P -n", "nmap localhost", "ss -tuln", "netstat -tuln", "ss -tulpn", "sudo ss -tulpn", "sudo netstat -tulnp"]
+  },
+  {
+    "id": 42,
+    "category": "network",
+    "query": "show all network interfaces",
+    "expected_commands": ["ip link", "ip link show", "ifconfig", "ip a", "ip addr", "ifconfig -a", "ip addr show", "nmcli device status", "networkctl list"]
+  },
+  {
+    "id": 43,
+    "category": "network",
+    "query": "lookup DNS for a domain",
+    "expected_commands": ["nslookup domain", "dig domain", "host domain", "dig +short domain", "nslookup example.com", "dig example.com", "host example.com", "drill domain", "resolvectl query domain"]
+  },
+  {
+    "id": 44,
+    "category": "network",
+    "query": "trace route to a host",
+    "expected_commands": ["traceroute host", "tracepath host", "mtr host", "traceroute -n host", "traceroute domain"]
+  },
+  {
+    "id": 45,
+    "category": "network",
+    "query": "send HTTP GET request",
+    "expected_commands": ["curl url", "curl -X GET url", "wget -qO- url", "curl -s url", "curl -v url", "http GET url", "curl http://example.com", "curl -XGET url"]
+  },
+  {
+    "id": 46,
+    "category": "network",
+    "query": "show network connections",
+    "expected_commands": ["ss", "netstat", "ss -s", "netstat -an", "ss -tunap", "ss -a", "netstat -a", "ss -tp", "ss -tan"]
+  },
+  {
+    "id": 47,
+    "category": "network",
+    "query": "test network speed or bandwidth",
+    "expected_commands": ["speedtest", "speedtest-cli", "curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python -", "iperf3 -c server", "fast", "speedtest --simple"]
+  },
+  {
+    "id": 48,
+    "category": "network",
+    "query": "show routing table",
+    "expected_commands": ["ip route", "ip route show", "route", "route -n", "netstat -rn", "ip r", "routel", "ip route list"]
+  },
+  {
+    "id": 49,
+    "category": "network",
+    "query": "check SSL certificate of a domain",
+    "expected_commands": ["openssl s_client -connect domain:443", "openssl s_client -connect domain:443 -servername domain", "echo | openssl s_client -connect domain:443 2>/dev/null | openssl x509 -text", "curl -vI https://domain", "openssl s_client -showcerts -connect domain:443", "echo | openssl s_client -connect domain:443"]
+  },
+  {
+    "id": 50,
+    "category": "docker",
+    "query": "list all docker containers",
+    "expected_commands": ["docker ps -a", "docker container ls -a", "docker ps --all", "docker container ls --all", "docker container list -a"]
+  },
+  {
+    "id": 51,
+    "category": "docker",
+    "query": "list running docker containers",
+    "expected_commands": ["docker ps", "docker container ls", "docker container list", "docker ps --filter status=running"]
+  },
+  {
+    "id": 52,
+    "category": "docker",
+    "query": "stop a docker container",
+    "expected_commands": ["docker stop container", "docker container stop container", "docker stop container_name", "docker kill container"]
+  },
+  {
+    "id": 53,
+    "category": "docker",
+    "query": "remove a docker container",
+    "expected_commands": ["docker rm container", "docker container rm container", "docker rm -f container", "docker container remove container", "docker rm container_name"]
+  },
+  {
+    "id": 54,
+    "category": "docker",
+    "query": "show docker container logs",
+    "expected_commands": ["docker logs container", "docker container logs container", "docker logs -f container", "docker logs --tail 100 container", "docker logs --follow container"]
+  },
+  {
+    "id": 55,
+    "category": "docker",
+    "query": "execute a command inside a running container",
+    "expected_commands": ["docker exec -it container bash", "docker exec -it container sh", "docker exec container command", "docker exec -it container /bin/bash", "docker exec -it container /bin/sh", "docker container exec -it container bash"]
+  },
+  {
+    "id": 56,
+    "category": "docker",
+    "query": "list docker images",
+    "expected_commands": ["docker images", "docker image ls", "docker image list", "docker images -a", "docker image ls -a"]
+  },
+  {
+    "id": 57,
+    "category": "docker",
+    "query": "build a docker image from Dockerfile",
+    "expected_commands": ["docker build -t name .", "docker build .", "docker build -t image:tag .", "docker image build -t name .", "docker buildx build -t name .", "docker build --tag name ."]
+  },
+  {
+    "id": 58,
+    "category": "docker",
+    "query": "run a docker container from an image",
+    "expected_commands": ["docker run image", "docker run -it image", "docker run -d image", "docker run --rm image", "docker run -it --rm image", "docker container run image", "docker run --name container image", "docker run -d --name container image"]
+  },
+  {
+    "id": 59,
+    "category": "docker",
+    "query": "show docker disk usage",
+    "expected_commands": ["docker system df", "docker system df -v", "docker system info"]
+  },
+  {
+    "id": 60,
+    "category": "git",
+    "query": "show git status",
+    "expected_commands": ["git status", "git status -s", "git status --short", "git status -sb", "git status --porcelain"]
+  },
+  {
+    "id": 61,
+    "category": "git",
+    "query": "show git log in one line format",
+    "expected_commands": ["git log --oneline", "git log --pretty=oneline", "git log --oneline --graph", "git log --oneline -n 10", "git log --format=oneline", "git log --pretty=oneline --abbrev-commit"]
+  },
+  {
+    "id": 62,
+    "category": "git",
+    "query": "create a new git branch",
+    "expected_commands": ["git branch branchname", "git checkout -b branchname", "git switch -c branchname", "git branch name", "git switch --create branchname"]
+  },
+  {
+    "id": 63,
+    "category": "git",
+    "query": "switch to a branch",
+    "expected_commands": ["git checkout branchname", "git switch branchname", "git checkout branch", "git switch branch"]
+  },
+  {
+    "id": 64,
+    "category": "git",
+    "query": "merge a branch into current branch",
+    "expected_commands": ["git merge branchname", "git merge branch", "git merge --no-ff branchname"]
+  },
+  {
+    "id": 65,
+    "category": "git",
+    "query": "show changes between commits",
+    "expected_commands": ["git diff", "git diff HEAD", "git diff commit1 commit2", "git diff --staged", "git diff --cached", "git diff HEAD~1", "git diff HEAD~1 HEAD", "git log --oneline", "git log --oneline --graph", "git log --oneline --graph --decorate", "git log -p"]
+  },
+  {
+    "id": 66,
+    "category": "git",
+    "query": "stash current changes",
+    "expected_commands": ["git stash", "git stash push", "git stash save", "git stash push -m 'message'", "git stash -u", "git stash --include-untracked"]
+  },
+  {
+    "id": 67,
+    "category": "git",
+    "query": "undo last commit but keep changes",
+    "expected_commands": ["git reset --soft HEAD~1", "git reset HEAD~1", "git reset --soft HEAD^", "git reset HEAD^", "git reset --mixed HEAD~1"]
+  },
+  {
+    "id": 68,
+    "category": "git",
+    "query": "add all changes to staging",
+    "expected_commands": ["git add .", "git add -A", "git add --all", "git add -u", "git add *"]
+  },
+  {
+    "id": 69,
+    "category": "git",
+    "query": "show who changed each line in a file",
+    "expected_commands": ["git blame file", "git blame filename", "git annotate file", "git blame -L 1,10 file", "git log --follow -p file"]
+  },
+  {
+    "id": 70,
+    "category": "git",
+    "query": "list all branches",
+    "expected_commands": ["git branch", "git branch -a", "git branch --all", "git branch -l", "git branch -r", "git branch --list", "git branch -v"]
+  },
+  {
+    "id": 71,
+    "category": "git",
+    "query": "delete a git branch",
+    "expected_commands": ["git branch -d branchname", "git branch -D branchname", "git branch --delete branchname", "git branch -d branch"]
+  },
+  {
+    "id": 72,
+    "category": "compression",
+    "query": "create a tar.gz archive",
+    "expected_commands": ["tar -czf archive.tar.gz files", "tar czf archive.tar.gz files", "tar -czvf archive.tar.gz files", "tar czvf archive.tar.gz files", "tar -zcvf archive.tar.gz directory", "tar -czf archive.tar.gz directory/"]
+  },
+  {
+    "id": 73,
+    "category": "compression",
+    "query": "extract a tar.gz archive",
+    "expected_commands": ["tar -xzf archive.tar.gz", "tar xzf archive.tar.gz", "tar -xzvf archive.tar.gz", "tar xzvf archive.tar.gz", "tar -zxvf archive.tar.gz", "tar zxvf archive.tar.gz", "tar -xf archive.tar.gz"]
+  },
+  {
+    "id": 74,
+    "category": "compression",
+    "query": "create a zip file",
+    "expected_commands": ["zip archive.zip files", "zip -r archive.zip directory", "zip -r archive.zip dir/", "zip archive.zip file1 file2", "zip -9 archive.zip files"]
+  },
+  {
+    "id": 75,
+    "category": "compression",
+    "query": "extract a zip file",
+    "expected_commands": ["unzip archive.zip", "unzip file.zip", "unzip -d directory archive.zip", "unzip archive.zip -d dest", "7z x archive.zip"]
+  },
+  {
+    "id": 76,
+    "category": "compression",
+    "query": "compress a file with gzip",
+    "expected_commands": ["gzip file", "gzip filename", "gzip -k file", "gzip -9 file", "gzip --keep file"]
+  },
+  {
+    "id": 77,
+    "category": "compression",
+    "query": "list contents of an archive without extracting",
+    "expected_commands": ["tar -tzf archive.tar.gz", "tar -tf archive.tar.gz", "tar tzf archive.tar.gz", "unzip -l archive.zip", "tar -tvf archive.tar.gz", "zipinfo archive.zip", "tar --list -f archive.tar.gz"]
+  },
+  {
+    "id": 78,
+    "category": "system",
+    "query": "show system or OS information",
+    "expected_commands": ["uname -a", "uname", "hostnamectl", "cat /etc/os-release", "lsb_release -a", "neofetch", "uname -r", "cat /etc/issue"]
+  },
+  {
+    "id": 79,
+    "category": "system",
+    "query": "show memory usage",
+    "expected_commands": ["free -h", "free", "free -m", "free -g", "cat /proc/meminfo", "vmstat", "free --human"]
+  },
+  {
+    "id": 80,
+    "category": "system",
+    "query": "show uptime",
+    "expected_commands": ["uptime", "uptime -p", "uptime -s", "w", "cat /proc/uptime"]
+  },
+  {
+    "id": 81,
+    "category": "system",
+    "query": "show current user",
+    "expected_commands": ["whoami", "id", "echo $USER", "who am i", "id -un", "logname"]
+  },
+  {
+    "id": 82,
+    "category": "system",
+    "query": "show hostname",
+    "expected_commands": ["hostname", "hostnamectl", "cat /etc/hostname", "uname -n", "hostname -f"]
+  },
+  {
+    "id": 83,
+    "category": "system",
+    "query": "show CPU info",
+    "expected_commands": ["lscpu", "cat /proc/cpuinfo", "nproc", "lscpu -e", "cpuinfo"]
+  },
+  {
+    "id": 84,
+    "category": "system",
+    "query": "show kernel version",
+    "expected_commands": ["uname -r", "uname -a", "uname -v", "cat /proc/version", "hostnamectl"]
+  },
+  {
+    "id": 85,
+    "category": "system",
+    "query": "show all environment variables",
+    "expected_commands": ["env", "printenv", "set", "export", "export -p", "declare -x"]
+  },
+  {
+    "id": 86,
+    "category": "package",
+    "query": "update package list on debian or ubuntu",
+    "expected_commands": ["sudo apt update", "apt update", "sudo apt-get update", "apt-get update"]
+  },
+  {
+    "id": 87,
+    "category": "package",
+    "query": "install a package on debian or ubuntu",
+    "expected_commands": ["sudo apt install package", "apt install package", "sudo apt-get install package", "apt-get install package", "sudo apt install -y package", "sudo apt-get install -y package"]
+  },
+  {
+    "id": 88,
+    "category": "package",
+    "query": "search for a package on debian or ubuntu",
+    "expected_commands": ["apt search package", "apt-cache search package", "sudo apt search package", "dpkg -l | grep package", "apt list | grep package"]
+  },
+  {
+    "id": 89,
+    "category": "package",
+    "query": "update all packages on arch linux",
+    "expected_commands": ["sudo pacman -Syu", "pacman -Syu", "yay -Syu", "paru -Syu", "sudo pacman -Syyu"]
+  },
+  {
+    "id": 90,
+    "category": "package",
+    "query": "install a package on arch linux",
+    "expected_commands": ["sudo pacman -S package", "pacman -S package", "yay -S package", "paru -S package", "sudo pacman -S --noconfirm package"]
+  },
+  {
+    "id": 91,
+    "category": "package",
+    "query": "remove a package and its dependencies on arch linux",
+    "expected_commands": ["sudo pacman -Rns package", "pacman -Rns package", "sudo pacman -Rs package", "pacman -Rs package", "yay -Rns package", "paru -Rns package"]
+  },
+  {
+    "id": 92,
+    "category": "user",
+    "query": "add a new user",
+    "expected_commands": ["sudo useradd username", "useradd username", "sudo adduser username", "adduser username", "sudo useradd -m username", "useradd -m username"]
+  },
+  {
+    "id": 93,
+    "category": "user",
+    "query": "change user password",
+    "expected_commands": ["passwd", "passwd username", "sudo passwd username", "passwd user"]
+  },
+  {
+    "id": 94,
+    "category": "user",
+    "query": "show current user groups",
+    "expected_commands": ["groups", "id", "groups username", "id -Gn", "id -nG"]
+  },
+  {
+    "id": 95,
+    "category": "user",
+    "query": "add user to a group",
+    "expected_commands": ["sudo usermod -aG group user", "usermod -aG group user", "sudo gpasswd -a user group", "gpasswd -a user group", "sudo adduser user group"]
+  },
+  {
+    "id": 96,
+    "category": "user",
+    "query": "switch to root user",
+    "expected_commands": ["su", "su -", "sudo su", "sudo -i", "sudo su -", "sudo -s", "su root"]
+  },
+  {
+    "id": 97,
+    "category": "misc",
+    "query": "schedule a command to run at specific time",
+    "expected_commands": ["at time", "crontab -e", "echo 'command' | at time", "at now + 5 minutes", "at 10:00", "systemd-run --on-calendar=time command"]
+  },
+  {
+    "id": 98,
+    "category": "misc",
+    "query": "show calendar",
+    "expected_commands": ["cal", "ncal", "cal -y", "cal 2026", "cal -3", "calendar"]
+  },
+  {
+    "id": 99,
+    "category": "misc",
+    "query": "generate a random password",
+    "expected_commands": ["openssl rand -base64 32", "openssl rand -base64 16", "openssl rand -hex 16", "tr -dc 'A-Za-z0-9!@#$%' < /dev/urandom | head -c 16", "pwgen", "pwgen 16 1", "head -c 32 /dev/urandom | base64", "date +%s | sha256sum | base64 | head -c 32", "cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 16", "< /dev/urandom tr -dc A-Za-z0-9 | head -c 16"]
+  },
+  {
+    "id": 100,
+    "category": "misc",
+    "query": "find and replace text in all files in a directory recursively",
+    "expected_commands": ["find . -type f -exec sed -i 's/old/new/g' {} +", "find . -type f -exec sed -i 's/old/new/g' {} \\;", "grep -rl 'old' . | xargs sed -i 's/old/new/g'", "sed -i 's/old/new/g' **/*", "find . -type f -name '*.txt' -exec sed -i 's/old/new/g' {} +", "rg old -l | xargs sed -i 's/old/new/g'", "grep -rli 'old' . | xargs sed -i 's/old/new/g'"]
+  }
+]

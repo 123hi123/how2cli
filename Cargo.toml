@@ -1,0 +1,32 @@
+[package]
+name = "how2cli"
+version = "0.1.0"
+edition = "2024"
+description = "Natural language to shell command translator powered by AI"
+license = "MIT"
+
+[[bin]]
+name = "h"
+path = "src/main.rs"
+
+[[bin]]
+name = "ht"
+path = "src/main.rs"
+
+[[bin]]
+name = "testbench"
+path = "src/testbench.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+colored = "3"
+dotenvy = "0.15"
+tokio = { version = "1", features = ["full"] }
+dirs = "6"
+toml = "0.8"
+
+[dev-dependencies]
+serde_json = "1"
