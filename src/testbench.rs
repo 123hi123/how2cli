@@ -2,6 +2,7 @@ mod api;
 mod config;
 mod format;
 mod prompt;
+mod session;
 mod shell;
 
 use serde::Deserialize;
@@ -138,13 +139,16 @@ async fn main() {
         let query = &tc.query;
         print!("[{:>3}/{}] {} ... ", i + 1, total, query);
 
+        let messages = vec![
+            serde_json::json!({"role": "system", "content": &system_prompt}),
+            serde_json::json!({"role": "user", "content": query}),
+        ];
         match api::chat_completion(
             &client,
             &cfg.base_url,
             &cfg.api_key,
             &cfg.fast_model,
-            &system_prompt,
-            query,
+            &messages,
         )
         .await
         {

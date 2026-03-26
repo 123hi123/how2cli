@@ -7,17 +7,13 @@ pub async fn chat_completion(
     base_url: &str,
     api_key: &str,
     model: &str,
-    system_prompt: &str,
-    user_prompt: &str,
+    messages: &[serde_json::Value],
 ) -> Result<String> {
     let url = format!("{}/v1/chat/completions", base_url.trim_end_matches('/'));
 
     let body = json!({
         "model": model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
+        "messages": messages,
     });
 
     let resp = client

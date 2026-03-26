@@ -10,6 +10,7 @@ pub struct Config {
     pub fast_timeout: u64,
     pub slow_timeout: u64,
     pub custom_prompt: String,
+    pub session_limit: u64,
 }
 
 impl Config {
@@ -36,6 +37,7 @@ struct FileConfig {
     fast_timeout: Option<u64>,
     slow_timeout: Option<u64>,
     custom_prompt: Option<String>,
+    session_limit: Option<u64>,
 }
 
 fn load_file_config() -> FileConfig {
@@ -103,6 +105,12 @@ pub fn load_config() -> Result<Config, String> {
         .or(file_cfg.custom_prompt)
         .unwrap_or_default();
 
+    let session_limit = std::env::var("HOW2_SESSION_LIMIT")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .or(file_cfg.session_limit)
+        .unwrap_or(100);
+
     if api_key.is_empty() {
         return Err("未找到 API key。請執行 `h --setup` 進行設定。".to_string());
     }
@@ -115,6 +123,7 @@ pub fn load_config() -> Result<Config, String> {
         fast_timeout,
         slow_timeout,
         custom_prompt,
+        session_limit,
     })
 }
 
@@ -190,6 +199,13 @@ pub fn interactive_setup() {
     println!("例: \"Always respond in Traditional Chinese\" 或 \"Prefer pacman over apt\"");
     let custom_prompt = prompt_input("Custom prompt", &default_custom);
 
+    let default_sl = std::env::var("HOW2_SESSION_LIMIT")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .or(file_cfg.session_limit)
+        .unwrap_or(100);
+    let session_limit = prompt_input("Session history limit (條)", &default_sl.to_string());
+
     let cfg = FileConfig {
         base_url: Some(base_url),
         api_key: Some(api_key),
@@ -198,6 +214,7 @@ pub fn interactive_setup() {
         fast_timeout: fast_timeout.parse().ok(),
         slow_timeout: slow_timeout.parse().ok(),
         custom_prompt: if custom_prompt.is_empty() { None } else { Some(custom_prompt) },
+        session_limit: session_limit.parse().ok(),
     };
 
     let path = config_path();

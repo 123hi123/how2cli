@@ -70,6 +70,7 @@ You'll be prompted to enter:
 - Slow model name (default: `deepseek-reasoner`)
 - Timeout settings
 - Custom prompt (optional, appended to system prompt)
+- Session history limit (default: 100 messages)
 
 Config is saved to `~/.config/how2cli/config.toml` and persists across sessions. Running `--setup` again loads your existing values as defaults — nothing gets lost.
 
@@ -104,6 +105,37 @@ ht debug why my ssh connection is refused
 ```
 
 `ht` uses the slow/reasoning model (e.g. `deepseek-reasoner`) with a 5-minute timeout for complex questions that benefit from deeper analysis.
+
+### `-t` - Talk mode (free conversation)
+
+```bash
+h -t what is Rust                     # free-form answer, no command format
+h -t explain kubernetes in simple terms
+h -u -t tell me about linux history   # unlimited history + talk
+```
+
+Talk mode uses only your custom prompt (from `--setup`). No `COMMAND:/EXPLANATION:` format — AI responds freely.
+
+### `--raw` - Pipe-friendly output
+
+```bash
+h --raw list all docker containers    # outputs only: docker ps -a
+h --raw compress this folder | sh     # pipe to shell for execution
+h --raw find large files > script.sh  # save to script
+```
+
+### Session memory
+
+Conversations are remembered per working directory. Default: last 100 messages.
+
+```bash
+h list docker containers              # asks a question
+h what was my last question            # AI remembers: "list docker containers"
+h -u show me more                     # -u = unlimited history (send all)
+h --clear                             # clear current directory's session
+```
+
+Session files are stored at `~/.local/share/how2cli/sessions/`.
 
 ### Other options
 
@@ -144,16 +176,18 @@ Both requests fire **simultaneously** via async Rust. If the search-enhanced req
 ```
 src/
 ├── main.rs      Entry point + dual-request parallel logic
-│                Detects h vs ht via argv[0]
+│                Detects h vs ht via argv[0], session integration
 ├── config.rs    Config loading (.env → env vars → config.toml)
 │                Interactive setup wizard (h --setup)
 ├── api.rs       OpenAI-compatible API client
 │                POST /v1/chat/completions + GET /v1/models
-├── prompt.rs    System prompt construction (direct + search)
+├── prompt.rs    System prompt construction (direct + search + talk)
 │                Response parsing (COMMAND: / EXPLANATION:)
+├── session.rs   Per-CWD conversation history (JSONL)
+│                Load/append/clear session files
 ├── shell.rs     OS, shell, package manager detection
 │                Provides context to LLM for accurate commands
-└── format.rs    Terminal output formatting with colors
+└── format.rs    Terminal output (colored, raw, talk modes)
 ```
 
 Config priority: **environment variables > `.env` file > `~/.config/how2cli/config.toml`**

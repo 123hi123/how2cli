@@ -1,5 +1,13 @@
 use crate::shell::ShellContext;
 
+pub fn build_talk_prompt(custom_prompt: &str) -> String {
+    if custom_prompt.is_empty() {
+        "You are a helpful assistant. Answer concisely.".to_string()
+    } else {
+        custom_prompt.to_string()
+    }
+}
+
 pub fn build_direct_prompt(shell_ctx: &ShellContext, custom_prompt: &str) -> String {
     let mut prompt = format!(
         "You are a command-line expert. The user is on {os} using {shell} shell with {pm} package manager.\n\
