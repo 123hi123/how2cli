@@ -1,13 +1,8 @@
 # how2cli shell integration for zsh
 # Add to ~/.zshrc: source /path/to/how2cli/shell/h.zsh
 #
-# This wrapper prevents zsh from treating ?, *, [] etc. as glob patterns
-# so you can type: h is this hard? without quoting
+# Uses alias (not function) because zsh expands globs BEFORE
+# calling functions, so noglob must be applied via alias.
 
-h() {
-    noglob command h "$@"
-}
-
-ht() {
-    noglob command ht "$@"
-}
+alias h='noglob command h'
+alias ht='noglob command ht'
