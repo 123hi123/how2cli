@@ -128,16 +128,17 @@ pub async fn chat_completion_stream(
                     if let Some(content) = data["choices"][0]["delta"]["content"].as_str() {
                         full_response.push_str(content);
                         if print {
-                            // Move cursor back to start of our output and clear
+                            use crossterm::{cursor, terminal, execute};
+                            // Move cursor back to start of our output
                             if printed_lines > 0 {
-                                use crossterm::{cursor, terminal, execute};
-                                let _ = execute!(
-                                    std::io::stdout(),
-                                    cursor::MoveUp(printed_lines),
-                                    cursor::MoveToColumn(0),
-                                    terminal::Clear(terminal::ClearType::FromCursorDown)
-                                );
+                                let _ = execute!(std::io::stdout(), cursor::MoveUp(printed_lines));
                             }
+                            // Always clear current line and everything below
+                            let _ = execute!(
+                                std::io::stdout(),
+                                cursor::MoveToColumn(0),
+                                terminal::Clear(terminal::ClearType::FromCursorDown)
+                            );
                             // Reprint full accumulated response with indent
                             let display = full_response.replace('\n', "\n  ");
                             print!("  {}", display);
