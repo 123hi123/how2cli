@@ -148,16 +148,28 @@ async fn main() {
         return;
     }
 
-    // Parse mode number from first argument
-    let (mode_num, user_query) = if cli.query.is_empty() {
+    // Parse mode shortcut from first argument
+    // Supports: h 1 query (by index) or h a query (by name's first char)
+    let (mode_idx, user_query) = if cli.query.is_empty() {
         (None, String::new())
     } else {
         let first = &cli.query[0];
         if first.len() == 1 {
             if let Some(c) = first.chars().next() {
                 if c.is_ascii_digit() && c != '0' {
+                    // Numeric mode: h 1 query → modes[0]
                     let num: usize = first.parse().unwrap();
-                    (Some(num), cli.query[1..].join(" "))
+                    (Some(num - 1), cli.query[1..].join(" "))
+                } else if c.is_ascii_lowercase() {
+                    // Letter mode: h a query → find mode whose name starts with 'a'
+                    let found = cfg.modes.iter().position(|m| {
+                        m.name.as_ref().map(|n| n.starts_with(c)).unwrap_or(false)
+                    });
+                    if found.is_some() {
+                        (found, cli.query[1..].join(" "))
+                    } else {
+                        (None, cli.query.join(" "))
+                    }
                 } else {
                     (None, cli.query.join(" "))
                 }
@@ -208,8 +220,8 @@ async fn main() {
     let mut raw = cli.raw;
     let mut no_explain = cli.no_explain;
 
-    if let Some(num) = mode_num {
-        if let Some(mode) = cfg.modes.get(num - 1) {
+    if let Some(idx) = mode_idx {
+        if let Some(mode) = cfg.modes.get(idx) {
             if let Some(flags) = &mode.flags {
                 for flag in flags.split_whitespace() {
                     match flag {
