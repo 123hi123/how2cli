@@ -3,6 +3,13 @@ use std::io::Write;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+/// Token usage info from API response
+#[derive(Debug, Default)]
+pub struct TokenUsage {
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+}
+
 /// Non-streaming API call (for testbench)
 pub async fn chat_completion(
     client: &reqwest::Client,
@@ -10,7 +17,7 @@ pub async fn chat_completion(
     api_key: &str,
     model: &str,
     messages: &[serde_json::Value],
-) -> Result<String> {
+) -> Result<(String, TokenUsage)> {
     let url = format!("{}/v1/chat/completions", base_url.trim_end_matches('/'));
 
     let body = json!({
@@ -39,11 +46,16 @@ pub async fn chat_completion(
         .ok_or("無法解析 API 回應")?
         .to_string();
 
-    Ok(content)
+    let usage = TokenUsage {
+        input_tokens: data["usage"]["prompt_tokens"].as_u64().unwrap_or(0),
+        output_tokens: data["usage"]["completion_tokens"].as_u64().unwrap_or(0),
+    };
+
+    Ok((content, usage))
 }
 
 /// Streaming API call via SSE. Prints tokens in real-time if `print` is true.
-/// Returns the full accumulated response.
+/// Returns the full accumulated response and token usage.
 pub async fn chat_completion_stream(
     client: &reqwest::Client,
     base_url: &str,
@@ -51,7 +63,7 @@ pub async fn chat_completion_stream(
     model: &str,
     messages: &[serde_json::Value],
     print: bool,
-) -> Result<String> {
+) -> Result<(String, TokenUsage)> {
     let url = format!("{}/v1/chat/completions", base_url.trim_end_matches('/'));
 
     let body = json!({
@@ -75,6 +87,7 @@ pub async fn chat_completion_stream(
     }
 
     let mut full_response = String::new();
+    let mut token_usage = TokenUsage::default();
     let mut buffer = String::new();
     let mut resp = resp;
 
@@ -95,7 +108,7 @@ pub async fn chat_completion_stream(
                     if print {
                         println!();
                     }
-                    return Ok(full_response);
+                    return Ok((full_response, token_usage));
                 }
 
                 if let Ok(data) = serde_json::from_str::<serde_json::Value>(json_str) {
@@ -106,6 +119,10 @@ pub async fn chat_completion_stream(
                             let _ = std::io::stdout().flush();
                         }
                     }
+                    if let Some(usage) = data.get("usage") {
+                        token_usage.input_tokens = usage["prompt_tokens"].as_u64().unwrap_or(0);
+                        token_usage.output_tokens = usage["completion_tokens"].as_u64().unwrap_or(0);
+                    }
                 }
             }
         }
@@ -115,7 +132,7 @@ pub async fn chat_completion_stream(
         println!();
     }
 
-    Ok(full_response)
+    Ok((full_response, token_usage))
 }
 
 pub async fn list_models(

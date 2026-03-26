@@ -1,5 +1,13 @@
-use std::io::{self, Write};
 use std::path::PathBuf;
+
+use dialoguer::{Confirm, Input, Password};
+use dialoguer::theme::ColorfulTheme;
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Default)]
+pub struct ModeConfig {
+    pub name: Option<String>,
+    pub flags: Option<String>,
+}
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -11,6 +19,9 @@ pub struct Config {
     pub slow_timeout: u64,
     pub custom_prompt: String,
     pub session_limit: u64,
+    pub modes: Vec<ModeConfig>,
+    pub show_token_usage: bool,
+    pub stream_output: bool,
 }
 
 impl Config {
@@ -18,7 +29,6 @@ impl Config {
     pub fn search_model(&self) -> String {
         format!("{}-search", self.fast_model)
     }
-
 }
 
 fn config_path() -> PathBuf {
@@ -38,6 +48,9 @@ struct FileConfig {
     slow_timeout: Option<u64>,
     custom_prompt: Option<String>,
     session_limit: Option<u64>,
+    modes: Option<Vec<ModeConfig>>,
+    show_token_usage: Option<bool>,
+    stream_output: Option<bool>,
 }
 
 fn load_file_config() -> FileConfig {
@@ -111,6 +124,10 @@ pub fn load_config() -> Result<Config, String> {
         .or(file_cfg.session_limit)
         .unwrap_or(100);
 
+    let modes = file_cfg.modes.unwrap_or_default();
+    let show_token_usage = file_cfg.show_token_usage.unwrap_or(true);
+    let stream_output = file_cfg.stream_output.unwrap_or(true);
+
     if api_key.is_empty() {
         return Err("未找到 API key。請執行 `h --setup` 進行設定。".to_string());
     }
@@ -124,28 +141,16 @@ pub fn load_config() -> Result<Config, String> {
         slow_timeout,
         custom_prompt,
         session_limit,
+        modes,
+        show_token_usage,
+        stream_output,
     })
 }
 
-fn prompt_input(prompt: &str, default: &str) -> String {
-    if default.is_empty() {
-        print!("{}: ", prompt);
-    } else {
-        print!("{} [{}]: ", prompt, default);
-    }
-    io::stdout().flush().unwrap();
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let input = input.trim().to_string();
-    if input.is_empty() {
-        default.to_string()
-    } else {
-        input
-    }
-}
-
 pub fn interactive_setup() {
-    println!("=== how2cli 設定精靈 ===\n");
+    let theme = ColorfulTheme::default();
+
+    println!("=== how2cli Setup ===\n");
 
     // Load existing values as defaults
     let _ = dotenvy::dotenv();
@@ -188,33 +193,159 @@ pub fn interactive_setup() {
         .or(file_cfg.custom_prompt)
         .unwrap_or_default();
 
-    let base_url = prompt_input("API Base URL", &default_url);
-    let api_key = prompt_input("API Key", &default_key);
-    let fast_model = prompt_input("Fast model", &default_fast);
-    let slow_model = prompt_input("Slow model", &default_slow);
-    let fast_timeout = prompt_input("Fast timeout (秒)", &default_ft.to_string());
-    let slow_timeout = prompt_input("Slow timeout (秒)", &default_st.to_string());
-
-    println!("\n自訂提示詞 (會附加在系統提示詞後面，直接 Enter 跳過)");
-    println!("例: \"Always respond in Traditional Chinese\" 或 \"Prefer pacman over apt\"");
-    let custom_prompt = prompt_input("Custom prompt", &default_custom);
-
     let default_sl = std::env::var("HOW2_SESSION_LIMIT")
         .ok()
         .and_then(|v| v.parse::<u64>().ok())
         .or(file_cfg.session_limit)
         .unwrap_or(100);
-    let session_limit = prompt_input("Session history limit (條)", &default_sl.to_string());
 
+    let default_show_token = file_cfg.show_token_usage.unwrap_or(true);
+    let default_stream = file_cfg.stream_output.unwrap_or(true);
+    let existing_modes = file_cfg.modes.unwrap_or_default();
+
+    // 1. API Base URL
+    let base_url: String = Input::with_theme(&theme)
+        .with_prompt("API Base URL")
+        .default(default_url)
+        .interact_text()
+        .unwrap();
+
+    // 2. API Key
+    let api_key: String = if default_key.is_empty() {
+        Password::with_theme(&theme)
+            .with_prompt("API Key")
+            .allow_empty_password(false)
+            .interact()
+            .unwrap()
+    } else {
+        Input::with_theme(&theme)
+            .with_prompt("API Key")
+            .default(default_key)
+            .interact_text()
+            .unwrap()
+    };
+
+    // 3. Fast model
+    let fast_model: String = Input::with_theme(&theme)
+        .with_prompt("Fast model")
+        .default(default_fast)
+        .interact_text()
+        .unwrap();
+
+    // 4. Slow model
+    let slow_model: String = Input::with_theme(&theme)
+        .with_prompt("Slow model")
+        .default(default_slow)
+        .interact_text()
+        .unwrap();
+
+    // 5. Fast timeout
+    let fast_timeout: u64 = Input::with_theme(&theme)
+        .with_prompt("Fast timeout (秒)")
+        .default(default_ft)
+        .interact_text()
+        .unwrap();
+
+    // 6. Slow timeout
+    let slow_timeout: u64 = Input::with_theme(&theme)
+        .with_prompt("Slow timeout (秒)")
+        .default(default_st)
+        .interact_text()
+        .unwrap();
+
+    // 7. Custom prompt
+    println!("\n自訂提示詞 (會附加在系統提示詞後面，直接 Enter 跳過)");
+    println!("例: \"Always respond in Traditional Chinese\" 或 \"Prefer pacman over apt\"");
+    let custom_prompt: String = Input::with_theme(&theme)
+        .with_prompt("Custom prompt")
+        .default(default_custom)
+        .allow_empty(true)
+        .interact_text()
+        .unwrap();
+
+    // 8. Session history limit
+    let session_limit: u64 = Input::with_theme(&theme)
+        .with_prompt("Session history limit (條)")
+        .default(default_sl)
+        .interact_text()
+        .unwrap();
+
+    // 9. Show token usage
+    let show_token_usage: bool = Confirm::with_theme(&theme)
+        .with_prompt("回應後顯示 token 用量？")
+        .default(default_show_token)
+        .interact()
+        .unwrap();
+
+    // 10. Stream output
+    let stream_output: bool = Confirm::with_theme(&theme)
+        .with_prompt("啟用串流輸出？(逐字顯示回應)")
+        .default(default_stream)
+        .interact()
+        .unwrap();
+
+    // 11. Mode setup
+    println!("\n--- Mode Setup ---");
+    let mode_count: u64 = Input::with_theme(&theme)
+        .with_prompt("要定義幾個模式？(0-9)")
+        .default(existing_modes.len() as u64)
+        .validate_with(|input: &u64| -> Result<(), String> {
+            if *input <= 9 {
+                Ok(())
+            } else {
+                Err("最多只能定義 9 個模式".to_string())
+            }
+        })
+        .interact_text()
+        .unwrap();
+
+    let mut modes: Vec<ModeConfig> = Vec::new();
+    for i in 0..mode_count as usize {
+        println!("\n  模式 {} :", i + 1);
+
+        let default_name = existing_modes
+            .get(i)
+            .and_then(|m| m.name.clone())
+            .unwrap_or_default();
+
+        let default_flags = existing_modes
+            .get(i)
+            .and_then(|m| m.flags.clone())
+            .unwrap_or_default();
+
+        let name: String = Input::with_theme(&theme)
+            .with_prompt("  Mode name")
+            .default(default_name)
+            .allow_empty(true)
+            .interact_text()
+            .unwrap();
+
+        let flags: String = Input::with_theme(&theme)
+            .with_prompt("  Mode flags")
+            .default(default_flags)
+            .allow_empty(true)
+            .interact_text()
+            .unwrap();
+
+        modes.push(ModeConfig {
+            name: if name.is_empty() { None } else { Some(name) },
+            flags: if flags.is_empty() { None } else { Some(flags) },
+        });
+    }
+
+    // Build and save config
     let cfg = FileConfig {
         base_url: Some(base_url),
         api_key: Some(api_key),
         fast_model: Some(fast_model),
         slow_model: Some(slow_model),
-        fast_timeout: fast_timeout.parse().ok(),
-        slow_timeout: slow_timeout.parse().ok(),
+        fast_timeout: Some(fast_timeout),
+        slow_timeout: Some(slow_timeout),
         custom_prompt: if custom_prompt.is_empty() { None } else { Some(custom_prompt) },
-        session_limit: session_limit.parse().ok(),
+        session_limit: Some(session_limit),
+        modes: if modes.is_empty() { None } else { Some(modes) },
+        show_token_usage: Some(show_token_usage),
+        stream_output: Some(stream_output),
     };
 
     let path = config_path();

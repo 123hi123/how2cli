@@ -24,13 +24,17 @@ $ h list all docker containers
 
 ## Highlights
 
-- **Dual-request parallel architecture** - fires two AI requests simultaneously (direct + search-enhanced). If search times out, the direct answer is always there as fallback. You never wait for nothing.
-- **Two modes, two commands** - `h` for instant answers (~3s), `ht` for deep thinking with reasoning models.
-- **5.4 MB single binary** - zero runtime dependencies, smaller than navi (~8MB), aichat (~10MB), tgpt (~12MB).
-- **Any OAI-compatible API** - works with DeepSeek, OpenAI, Groq, local vLLM, or any OpenAI-compatible endpoint. Not locked to a single provider.
-- **Explains to help you remember** - doesn't just give you the command, explains what each flag does so you learn and won't need to ask again.
-- **Custom prompts** - add your own instructions (e.g. "always respond in Chinese", "prefer pacman") via `h --setup`.
-- **100/100 testbench** - validated against 100 real-world queries across file ops, Docker, Git, networking, text processing, and more.
+- **SSE streaming** - responses appear token-by-token in real-time. Configurable in setup.
+- **Session memory** - per-directory conversation history. AI remembers your previous questions. `-u` for unlimited, `-a` for cross-directory.
+- **Talk mode (`-t`)** - free conversation beyond just shell commands. Ask anything.
+- **Mode shortcuts** - define preset flag combos (e.g. `h 1 query` = talk + unlimited). Up to 9 modes.
+- **Markdown rendering** - AI responses rendered with proper formatting (bold, code, lists, headers) via termimad.
+- **Token usage** - shows input/output token counts after each response. Toggleable in setup.
+- **Two commands** - `h` for fast answers (~3s), `ht` for deep thinking with reasoning models.
+- **Single binary** - zero runtime dependencies, any OAI-compatible API endpoint.
+- **TUI setup** - interactive setup wizard with dialoguer. All settings persist.
+- **Shell integration** - `noglob` wrapper for zsh prevents `?*[]` glob issues.
+- **100/100 testbench** - validated against 100 real-world queries.
 
 ## Installation
 
@@ -200,6 +204,14 @@ Config priority: **environment variables > `.env` file > `~/.config/how2cli/conf
 | Shell detection | `$SHELL` | `$SHELL` | PowerShell/cmd |
 | Config path | `~/.config/how2cli/` | `~/Library/Application Support/how2cli/` | `%APPDATA%/how2cli/` |
 | Package manager | pacman/apt/dnf/zypper | brew | - |
+
+## Documentation
+
+| Doc | Contents |
+|-----|----------|
+| [docs/architecture.md](docs/architecture.md) | System overview, data flow diagram, file map |
+| [docs/configuration.md](docs/configuration.md) | All settings, env vars, modes, .env files |
+| [docs/development.md](docs/development.md) | Build, test, contribute, add features |
 
 ## License
 

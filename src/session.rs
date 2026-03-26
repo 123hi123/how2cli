@@ -108,6 +108,51 @@ pub fn append(user_msg: &str, assistant_msg: &str) {
     }
 }
 
+/// Load conversation history from ALL session files (for -a flag).
+/// Used with -u -a to get unlimited history across all directories.
+pub fn load_all_history(limit: Option<usize>) -> Vec<(String, String)> {
+    let dir = session_dir();
+    if !dir.exists() {
+        return vec![];
+    }
+
+    let mut all_pairs: Vec<(String, String)> = Vec::new();
+
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|e| e == "jsonl") {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    let mut pending_user: Option<String> = None;
+                    for line in content.lines() {
+                        if line.trim().is_empty() { continue; }
+                        if let Ok(msg) = serde_json::from_str::<Message>(line) {
+                            match msg.role.as_str() {
+                                "user" => { pending_user = Some(msg.content); }
+                                "assistant" => {
+                                    if let Some(user_msg) = pending_user.take() {
+                                        all_pairs.push((user_msg, msg.content));
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    match limit {
+        Some(n) => {
+            let msg_limit = n / 2;
+            let skip = all_pairs.len().saturating_sub(msg_limit.max(1));
+            all_pairs.into_iter().skip(skip).collect()
+        }
+        None => all_pairs,
+    }
+}
+
 /// Clear the session for the current CWD.
 pub fn clear() {
     let path = session_path();

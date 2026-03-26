@@ -11,7 +11,7 @@ use std::path::Path;
 use std::time::Duration;
 
 #[derive(Parser)]
-#[command(name = "h", version, about = "Natural language to shell command\n\n  h  = fast mode (dual-request parallel)\n  ht = think mode (slow reasoning model)")]
+#[command(name = "h", version, about = "Natural language to shell command\n\n  h  = fast mode\n  ht = think mode (slow reasoning model)\n  h 1 = mode 1 shortcut")]
 struct Cli {
     /// The query in natural language
     #[arg(trailing_var_arg = true)]
@@ -48,6 +48,10 @@ struct Cli {
     /// Clear session history for current directory
     #[arg(long)]
     clear: bool,
+
+    /// Load all directories' session history (requires -u)
+    #[arg(short = 'a', long)]
+    all: bool,
 }
 
 /// Detect if invoked as "ht" (think/slow mode)
@@ -132,28 +136,86 @@ async fn main() {
         return;
     }
 
-    let user_query = cli.query.join(" ");
+    // Parse mode number from first argument
+    let (mode_num, user_query) = {
+        let first = &cli.query[0];
+        if first.len() == 1 {
+            if let Some(c) = first.chars().next() {
+                if c.is_ascii_digit() && c != '0' {
+                    let num: usize = first.parse().unwrap();
+                    (Some(num), cli.query[1..].join(" "))
+                } else {
+                    (None, cli.query.join(" "))
+                }
+            } else {
+                (None, cli.query.join(" "))
+            }
+        } else {
+            (None, cli.query.join(" "))
+        }
+    };
+
+    if user_query.is_empty() {
+        Cli::parse_from(["h", "--help"]);
+        return;
+    }
+
+    // Resolve flags (CLI flags + mode overrides)
+    let mut talk = cli.talk;
+    let mut unlimited = cli.unlimited;
+    let mut all_sessions = cli.all;
+    let mut raw = cli.raw;
+    let mut no_explain = cli.no_explain;
+
+    if let Some(num) = mode_num {
+        if let Some(mode) = cfg.modes.get(num - 1) {
+            if let Some(flags) = &mode.flags {
+                for flag in flags.split_whitespace() {
+                    match flag {
+                        "-t" | "--talk" => talk = true,
+                        "-u" | "--unlimited" => unlimited = true,
+                        "-a" | "--all" => all_sessions = true,
+                        "--raw" => raw = true,
+                        "--no-explain" => no_explain = true,
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
 
     // Load session history
-    let history_limit = if cli.unlimited {
-        None
+    let history = if all_sessions && unlimited {
+        session::load_all_history(None)
+    } else if unlimited {
+        session::load_history(None)
     } else {
-        Some(cfg.session_limit as usize)
+        session::load_history(Some(cfg.session_limit as usize))
     };
-    let history = session::load_history(history_limit);
 
-    if cli.talk {
+    // Execute based on mode
+    if talk {
         // Talk mode: free conversation, streaming
         let system_prompt = prompt::build_talk_prompt(&cfg.custom_prompt);
         let messages = build_messages(&system_prompt, &history, &user_query);
         let model = cli.model.as_deref().unwrap_or(&cfg.fast_model);
 
-        print!("\n  ");
+        let stream_print = cfg.stream_output;
+        if stream_print { print!("\n  "); }
         match api::chat_completion_stream(
-            &client, &cfg.base_url, &cfg.api_key, model, &messages, true,
-        ).await {
-            Ok(response) => {
-                println!();
+            &client, &cfg.base_url, &cfg.api_key, model, &messages, stream_print,
+        )
+        .await
+        {
+            Ok((response, usage)) => {
+                if stream_print {
+                    println!();
+                } else {
+                    format::format_talk(&response);
+                }
+                if cfg.show_token_usage && !raw {
+                    format::format_token_usage(usage.input_tokens, usage.output_tokens);
+                }
                 session::append(&user_query, &response);
             }
             Err(e) => {
@@ -169,21 +231,24 @@ async fn main() {
         let messages = build_messages(&system_prompt, &history, &user_query);
         let timeout_dur = Duration::from_secs(cfg.slow_timeout);
 
-        // Stream but buffer (don't print) — parse COMMAND/EXPLANATION after completion
         let result = tokio::time::timeout(
             timeout_dur,
             api::chat_completion_stream(
                 &client, &cfg.base_url, &cfg.api_key, model, &messages, false,
             ),
-        ).await;
+        )
+        .await;
 
         match result {
-            Ok(Ok(response)) => {
+            Ok(Ok((response, usage))) => {
                 let (cmd, exp) = prompt::parse_response(&response);
-                if cli.raw {
+                if raw {
                     format::format_raw(&cmd);
                 } else {
-                    format::format_result(&cmd, &exp, !cli.no_explain);
+                    format::format_result(&cmd, &exp, !no_explain);
+                }
+                if cfg.show_token_usage && !raw {
+                    format::format_token_usage(usage.input_tokens, usage.output_tokens);
                 }
                 session::append(&user_query, &response);
             }
@@ -219,18 +284,26 @@ async fn main() {
         let result = tokio::time::timeout(
             timeout_dur,
             api::chat_completion_stream(
-                &client, &cfg.base_url, &cfg.api_key, &search_model, &search_messages, false,
+                &client,
+                &cfg.base_url,
+                &cfg.api_key,
+                &search_model,
+                &search_messages,
+                false,
             ),
-        ).await;
+        )
+        .await;
 
-        let response = match result {
-            Ok(Ok(resp)) => resp,
+        let (response, usage) = match result {
+            Ok(Ok(r)) => r,
             _ => {
                 // Fallback to direct model (streaming, buffered)
                 match api::chat_completion_stream(
                     &client, &cfg.base_url, &cfg.api_key, model, &messages, false,
-                ).await {
-                    Ok(resp) => resp,
+                )
+                .await
+                {
+                    Ok(r) => r,
                     Err(e) => {
                         eprintln!("API 請求失敗: {}", e);
                         std::process::exit(1);
@@ -240,10 +313,13 @@ async fn main() {
         };
 
         let (cmd, exp) = prompt::parse_response(&response);
-        if cli.raw {
+        if raw {
             format::format_raw(&cmd);
         } else {
-            format::format_result(&cmd, &exp, !cli.no_explain);
+            format::format_result(&cmd, &exp, !no_explain);
+        }
+        if cfg.show_token_usage && !raw {
+            format::format_token_usage(usage.input_tokens, usage.output_tokens);
         }
         session::append(&user_query, &response);
     }

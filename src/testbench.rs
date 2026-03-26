@@ -152,7 +152,7 @@ async fn main() {
         )
         .await
         {
-            Ok(response) => {
+            Ok((response, _usage)) => {
                 let (cmd, _) = prompt::parse_response(&response);
 
                 if command_matches(&cmd, &tc.expected_commands) {
